@@ -1,4 +1,6 @@
 import re
+import urlcanon
+# TODO: Store only canon URLs!
 
 from threading import Lock
 from queue import Queue
@@ -50,9 +52,10 @@ class FrontierManager:
                 # print(f'{TAG} string: {url} is a duplicate!')
                 return
 
-        self.frontier.put(url)
+            self.frontier.put(url)
 
-    # def get(self):
-    #     val = self.frontier.get()
-    #     self.frontier.task_done()
-    #     return val
+    def get(self):
+        with self.lock:
+            val = self.frontier.get()
+            self.frontier.task_done()
+        return val

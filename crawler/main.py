@@ -25,10 +25,13 @@ class Crawler:
 
     def crawl(self):
         for i in range(self.workers):
-            s = Spider(id=0, seed_url=self.seed_url, web_driver=self.web_driver, frontier_manager=self.frontier_manager)
-            t = Thread(target=s.crawl(), daemon=True)
+            s = Spider(id=i, seed_url=self.seed_url, web_driver=self.web_driver, frontier_manager=self.frontier_manager)
+            t = Thread(target=s.crawl, daemon=True)
             t.start()
-            print('yes')
+            self.spiders.append(t)
+
+        for spider in self.spiders:
+            spider.join()
 
         self.frontier_manager.frontier.join()
 

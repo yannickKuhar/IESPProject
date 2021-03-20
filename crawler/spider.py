@@ -25,7 +25,7 @@ class Spider:
             html = self.web_driver.page_source
             soup = BeautifulSoup(html, features='html.parser')
 
-            # Get all links
+            # Get all links (also do document.location)
             for link in soup.find_all('a'):
                 self.frontier_manager.put(url, link.get('href', None))
 
