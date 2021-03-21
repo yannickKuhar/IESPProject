@@ -3,7 +3,6 @@ from threading import Thread
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from urllib.parse import urlparse, urljoin
 
 from frontier_manager import FrontierManager
 from spider import Spider

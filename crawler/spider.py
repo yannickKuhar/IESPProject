@@ -1,40 +1,41 @@
-import time
-from bs4 import BeautifulSoup
+# import time
+from HTML_parser import HTMLParser
 
 
 TAG = '[SPIDER]'
 
 
+# TODO: Read robot.txt
 class Spider:
     def __init__(self, id, seed_url, web_driver, frontier_manager):
         self.id = id
-        self.seed_url = seed_url
+        self.working_url = seed_url
         self.web_driver = web_driver
         self.frontier_manager = frontier_manager
+        self.html_parser = HTMLParser()
 
     def crawl(self):
 
-        url = self.seed_url
-        self.frontier_manager.add_to_history(url)
+        while len(self.working_url) > 0:
 
-        while len(url) > 0:
+            # TODO: Get URL domain and its robot.txt.
 
-            print(f'{TAG} [ID {self.id}] Crawling on {url}')
+            print(f'{TAG} [ID {self.id}] Crawling on {self.working_url}')
 
-            self.web_driver.get(url)
+            # Get HTML code fom web page on working URL.
+            self.web_driver.get(self.working_url)
             html = self.web_driver.page_source
-            soup = BeautifulSoup(html, features='html.parser')
+
+            # Set working html code.
+            self.html_parser.set_working_html(html)
 
             # Get all links (also do document.location)
-            for link in soup.find_all('a'):
-                self.frontier_manager.put(url, link.get('href', None))
+            for link in self.html_parser.get_links():
+                self.frontier_manager.put(self.working_url, link)
 
-            # Parse html and save to DB
-            # for tag in soup.find_all('title'):
-            #     print(f'{TAG} [ID {self.id}] Title: {tag}')
-
+            # TODO: Other termination condition, this is suboptimal.
             if self.frontier_manager.frontier.empty():
                 print(f'{TAG} [ID {self.id}] Stopped crawling. ')
                 return
 
-            url = self.frontier_manager.get()
+            self.working_url = self.frontier_manager.get()
