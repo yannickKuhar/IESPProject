@@ -23,11 +23,6 @@ class FrontierManager:
         self.gov_regex = re.compile('.*gov\.si.*', re.IGNORECASE)
         self.history = []
 
-    def add_to_history(self, url):
-        with self.lock:
-            if url not in self.history:
-                self.history.append(url)
-
     def put(self, seed, url):
 
         if url is None:
