@@ -1,7 +1,7 @@
 import time
 
-from HTML_parser import HTMLParser
-from robotparser import RobotFileParser
+from crawler.HTML_parser import HTMLParser
+from crawler.robotparser import RobotFileParser
 from urllib.parse import urlparse
 
 

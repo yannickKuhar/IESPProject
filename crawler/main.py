@@ -4,8 +4,8 @@ from threading import Thread
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-from frontier_manager import FrontierManager
-from spider import Spider
+from crawler.frontier_manager import FrontierManager
+from crawler.spider import Spider
 
 from crawler.db import Db
 

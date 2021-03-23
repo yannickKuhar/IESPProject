@@ -64,9 +64,21 @@ CREATE TABLE crawldb.link (
 	CONSTRAINT _0 PRIMARY KEY ( from_page, to_page )
  );
 
-CREATE INDEX "idx_link_from_page" ON crawldb.link ( from_page );
+CREATE TABLE crawldb.hashes (
+    of_page integer not null,
+    hash0 text not null,
+    hash1 text not null,
+    hash2 text not null,
+    hash3 text not null,
+    CONSTRAINT _1 primary key (of_page)
+);
+
+
+CREATE INDEX  "idx_hashes_of_page" ON crawldb.hashes(of_page);
 
 CREATE INDEX "idx_link_to_page" ON crawldb.link ( to_page );
+
+CREATE INDEX "idx_link_from_page" ON crawldb.link ( from_page );
 
 ALTER TABLE crawldb.image ADD CONSTRAINT fk_image_page_data FOREIGN KEY ( page_id ) REFERENCES crawldb.page( id ) ON DELETE RESTRICT;
 
@@ -81,6 +93,8 @@ ALTER TABLE crawldb.page ADD CONSTRAINT fk_page_page_type FOREIGN KEY ( page_typ
 ALTER TABLE crawldb.page_data ADD CONSTRAINT fk_page_data_page FOREIGN KEY ( page_id ) REFERENCES crawldb.page( id ) ON DELETE RESTRICT;
 
 ALTER TABLE crawldb.page_data ADD CONSTRAINT fk_page_data_data_type FOREIGN KEY ( data_type_code ) REFERENCES crawldb.data_type( code ) ON DELETE RESTRICT;
+
+ALTER TABLE crawldb.hashes ADD CONSTRAINT fk_hashes_page_data FOREIGN KEY ( of_page ) REFERENCES crawldb.page( id ) ON DELETE RESTRICT;
 
 INSERT INTO crawldb.data_type VALUES 
 	('PDF'),
