@@ -58,10 +58,10 @@ CREATE TABLE crawldb.image (
 
 CREATE INDEX "idx_image_page_id" ON crawldb.image ( page_id );
 
-CREATE TABLE crawldb.link ( 
+CREATE TABLE crawldb.link (
 	from_page            integer  NOT NULL,
 	to_page              integer  NOT NULL,
-	CONSTRAINT pk_link_id PRIMARY KEY ( from_page, to_page )
+	CONSTRAINT _0 PRIMARY KEY ( from_page, to_page )
  );
 
 CREATE INDEX "idx_link_from_page" ON crawldb.link ( from_page );

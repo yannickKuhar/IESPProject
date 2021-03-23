@@ -1,8 +1,7 @@
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine, MetaData, inspect
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.automap import automap_base, name_for_collection_relationship
 from sqlalchemy.orm import Session
-from datetime import datetime
 
 """
 Class for working with database. 
@@ -16,26 +15,25 @@ Few rules:
 """
 
 
+def _name_for_collection_relationship(base, local_cls, referred_cls, constraint):
+    if constraint.name:
+        return constraint.name.lower()
+    return name_for_collection_relationship(base, local_cls, referred_cls, constraint)
+
+
 class Db:
-
-    @staticmethod
-    def _name_for_collection_relationship(base, local_cls, referred_cls, constraint):
-        if constraint.name:
-            return constraint.name.lower()
-        return name_for_collection_relationship(base, local_cls, referred_cls, constraint)
-
-    def __init__(self):
-        self.engine = create_engine("postgresql://postgres:admin@localhost/crawldb")
-        self.session = Session(bind=self.engine)
+    def __init__(self, pool_size):
+        self.engine = create_engine("postgresql://postgres:admin@localhost/crawldb", pool_size=pool_size)
         self.metadata = MetaData(schema="crawldb")
-        Base = automap_base(bind=self.engine, metadata=self.metadata)
-        Base.prepare(self.engine, reflect=True, name_for_collection_relationship=self._name_for_collection_relationship)
-        self.Page = Base.classes.page
-        self.Site = Base.classes.site
-        self.Image = Base.classes.image
-        self.Page_type = Base.classes.page_type
-        self.Page_data = Base.classes.page_data
-        self.Data_type = Base.classes.data_type
+        self.Base = automap_base(bind=self.engine, metadata=self.metadata)
+        self.Base.prepare(self.engine, reflect=True, name_for_collection_relationship=_name_for_collection_relationship)
+        self.Page = self.Base.classes.page
+        self.Site = self.Base.classes.site
+        self.Image = self.Base.classes.image
+        self.Page_type = self.Base.classes.page_type
+        self.Page_data = self.Base.classes.page_data
+        self.Data_type = self.Base.classes.data_type
+        self.session = Session(bind=self.engine)
 
     @staticmethod
     def page_fields():
@@ -80,24 +78,8 @@ class Db:
         self.session.commit()
         return new_Image
 
-
-database = Db()
-"""
-site = database.add_site(
-    {
-        "domain": "gov2.si",
-        "robots_content": "temp",
-        "sitemap_content": "temp"
-    }
-)
-database.add_page(
-    {
-        "site_id": site.id,
-        "page_type_code": "HTML",
-        "url": "gov2.si",
-        "html_content": "<html></html>",
-        "http_status_code": 200,
-        "accessed_time": datetime.now()
-    }
-)
-"""
+    def add_link(self, page1, page2):
+        page1.fk_link_page.append(page2)
+        self.session.add(page1)
+        self.session.commit()
+        return page1

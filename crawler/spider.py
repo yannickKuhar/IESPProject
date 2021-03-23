@@ -9,13 +9,14 @@ TAG = '[SPIDER]'
 
 
 class Spider:
-    def __init__(self, id, seed_url, web_driver, frontier_manager):
+    def __init__(self, id, seed_url, web_driver, frontier_manager, database):
         self.id = id
         self.working_url = seed_url
         self.working_domain_rules = RobotFileParser()
         self.web_driver = web_driver
         self.frontier_manager = frontier_manager
         self.html_parser = HTMLParser()
+        self.database = database
 
         self.set_working_domain_rules()
 
