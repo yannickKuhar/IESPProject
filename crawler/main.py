@@ -1,4 +1,4 @@
-import sys
+import sys  
 from threading import Thread
 
 from selenium import webdriver
