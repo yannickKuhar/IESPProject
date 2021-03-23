@@ -20,39 +20,41 @@ def preprocess_text(text):
 
 
 class doc_similarity:
-    def __init__(self, jaccard_threshold=0.8):
+    def __init__(self, database, jaccard_threshold=0.8):
         self.jaccard_threshold = jaccard_threshold
         self.text_db = {}
-        self.hash_tables = {i: {} for i in range(4)}
-
+        self.database = database
 
     def similarity(self, text):
-        text = preprocess_text(text)
+        # text = preprocess_text(text)
         hashed_text = self.hash_text(text)
         # self.print_hash(hashed_text)
 
         occurences = self.in_hash_tables(hashed_text)
-        # print(occurences)
+        print(occurences)
         occurences = Counter(occurences)
         occurences = dict(sorted(occurences.items(), key=operator.itemgetter(1), reverse=True))
 
         if not len(occurences) or occurences[list(occurences.keys())[0]] < 2:
             # Document is not similar to any other document, add it to hash_tables
-            self.add_to_hash_tables(hashed_text, text)
-            #self.print_text_db()
-            return True
+            q0 = hashed_text[0:8]
+            q1 = hashed_text[8:16]
+            q2 = hashed_text[16:24]
+            q3 = hashed_text[24:32]
+            return True, q0, q1, q2, q3
         else:
             # More in-depth comparison of the seemingly similar documents
             if self.in_depth_check(text, occurences):
                 # Document is not similar to any other document, add it to hash_tables
-                self.add_to_hash_tables(hashed_text, text)
-                #self.print_text_db()
-                return True
+                q0 = hashed_text[0:8]
+                q1 = hashed_text[8:16]
+                q2 = hashed_text[16:24]
+                q3 = hashed_text[24:32]
+                return True, q0, q1, q2, q3
             else:
                 # Document is too similar to some other document, reject it
                 print("Namaste.")
                 return False
-
 
     def in_depth_check(self, current_text, occurences):
         for x in occurences:
@@ -69,7 +71,6 @@ class doc_similarity:
                 break
         return True
 
-
     @staticmethod
     def jaccard_dist(t1, t2):
         presek = set(t1) & set(t2)
@@ -77,8 +78,8 @@ class doc_similarity:
 
         return len(presek) / len(unija)
 
-
     def in_hash_tables(self, hashed_text):
+        hash0, hash1, hash2, hash3 = self.db2dict(*self.database.get_all_hashes())
         q0 = hashed_text[0:8]
         q1 = hashed_text[8:16]
         q2 = hashed_text[16:24]
@@ -86,56 +87,19 @@ class doc_similarity:
 
         similar_txts = []
 
-        for t in self.hash_tables[0].keys():
-            if t == q0: similar_txts += list(self.hash_tables[0][t])
+        for t in hash0:
+            if t == q0: similar_txts += list(hash0[t])
 
-        for t in self.hash_tables[1].keys():
-            if t == q1: similar_txts += list(self.hash_tables[1][t])
+        for t in hash1:
+            if t == q1: similar_txts += list(hash1[t])
 
-        for t in self.hash_tables[2].keys():
-            if t == q2: similar_txts += list(self.hash_tables[2][t])
+        for t in hash2:
+            if t == q2: similar_txts += list(hash2[t])
 
-        for t in self.hash_tables[3].keys():
-            if t == q3: similar_txts += list(self.hash_tables[3][t])
+        for t in hash3:
+            if t == q3: similar_txts += list(hash3[t])
 
         return similar_txts
-
-
-    def add_to_hash_tables(self, hashed_text, text):
-        q0 = hashed_text[0:8]
-        q1 = hashed_text[8:16]
-        q2 = hashed_text[16:24]
-        q3 = hashed_text[24:32]
-
-        if q0 in self.hash_tables[0].keys():
-            self.hash_tables[0][q0].append(len(self.text_db))
-        else:
-            self.hash_tables[0][q0] = [len(self.text_db)]
-
-        if q1 in self.hash_tables[1].keys():
-            self.hash_tables[1][q1].append(len(self.text_db))
-        else:
-            self.hash_tables[1][q1] = [len(self.text_db)]
-
-        if q2 in self.hash_tables[2].keys():
-            self.hash_tables[2][q2].append(len(self.text_db))
-        else:
-            self.hash_tables[2][q2] = [len(self.text_db)]
-
-        if q3 in self.hash_tables[3].keys():
-            self.hash_tables[3][q3].append(len(self.text_db))
-        else:
-            self.hash_tables[3][q3] = [len(self.text_db)]
-
-        self.text_db[len(self.text_db)] = text
-
-
-    def print_hash_tables(self):
-        print("---------------")
-        for t in self.hash_tables:
-            print(t, self.hash_tables[t])
-        print("---------------")
-
 
     @staticmethod
     def print_hash(hashed_text):
@@ -143,12 +107,6 @@ class doc_similarity:
         print(hashed_text[8:16])
         print(hashed_text[16:24])
         print(hashed_text[24:32])
-
-
-    def print_text_db(self):
-        for x in self.text_db:
-            print(x, self.text_db[x])
-
 
     def hash_text(self, text):
         vec = [0 for _ in range(32)]
@@ -161,10 +119,9 @@ class doc_similarity:
         vec = ''.join(['1' if c > 0 else '0' for c in vec])
         return vec
 
-
     def adler32(self, string, prime=65521):
         chars = [char for char in string]
-        sumA = 0;
+        sumA = 0
         sumB = 1
 
         for c in chars:
@@ -179,6 +136,31 @@ class doc_similarity:
 
         return rez
 
+    @staticmethod
+    def db2dict(ids, ht0, ht1, ht2, ht3):
+        dict0 = {}
+        dict1 = {}
+        dict2 = {}
+        dict3 = {}
+        for idd, h0, h1, h2, h3 in zip(ids, ht0, ht1, ht2, ht3):
+            if h0 in dict0.keys():
+                dict0[h0].append(idd)
+            else:
+                dict0[h0] = [idd]
+            if h1 in dict1.keys():
+                dict1[h1].append(idd)
+            else:
+                dict1[h1] = [idd]
+            if h2 in dict2.keys():
+                dict2[h2].append(idd)
+            else:
+                dict2[h2] = [idd]
+            if h3 in dict3.keys():
+                dict3[h3].append(idd)
+            else:
+                dict3[h3] = [idd]
+        return dict0
+
 
 text0 = "Nasus is an imposing, jackal-headed Ascended—those heroic and god-like figures once revered by the people of Shurima. Fiercely intelligent, he was a guardian of knowledge and peerless strategist whose wisdom guided the empire to greatness for many centuries. After the failed Ascension of Azir, Nasus went into self-imposed exile, becoming little more than a legend. Now that the Sun Disc has risen once more, he has returned, determined to ensure it never falls again."
 text1 = "Sadistic and cunning, Thresh is an ambitious and restless spirit of the Shadow Isles. Once the custodian of countless arcane secrets, he was undone by a power greater than life or death, and now sustains himself by tormenting and breaking others with slow, excruciating inventiveness. His victims suffer far beyond their brief mortal coil as Thresh wreaks agony upon their souls, imprisoning them in his unholy lantern to torture for all eternity."
@@ -191,64 +173,15 @@ text7 = "He was born to mother and father. He was a monk know as Xyz."
 text8 = "He was born to father and mother. He were an priest know as Xyz."
 
 if __name__ == '__main__':
-    ds = doc_similarity()
-    ds.similarity(text0)
-    ds.similarity(text1)
-    ds.similarity(text2)
-    ds.similarity(text3)
-    ds.similarity(text4)
-    ds.similarity(text5)
-    ds.similarity(text6)
-    ds.similarity(text7)
-    ds.similarity(text8)
 
+    texts = [text0, text1, text2, text3, text4, text5, text6, text7, text8]
 
+    ds = doc_similarity("Namaste.")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    for x in range(9):
+        ret, q0, q1, q2, q3 = ds.similarity(texts[x])
+        if ret:
+            # Dodaj v bazo
+            # Izpisi stanje baze
+            pass
 
