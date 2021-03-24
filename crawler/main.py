@@ -39,6 +39,10 @@ class Crawler:
 def main(args):
     workers = int(args[1])
 
+    if workers <= 0:
+        print(f'{TAG} [ERROR] Number of workers must be a positive integer!')
+        return
+
     print(f'{TAG} Number of workers: {workers}')
 
     c = Crawler(workers=workers)

@@ -51,6 +51,7 @@ class Spider:
 
         while time.time() < mustend:
             if not self.frontier_manager.frontier.empty():
+                print(f'{TAG} [ID {self.id}] Is waking up.')
                 return False
 
             time.sleep(5)
@@ -60,7 +61,6 @@ class Spider:
     def crawl(self):
 
         while True:
-
             # If the current working URL is None it means the spider was launched with an empty frontier and needs to do
             # a short sleep. After the sleep the frontier should be nonempty.
             if self.working_url is None:
