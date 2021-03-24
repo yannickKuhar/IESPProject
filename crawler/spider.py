@@ -1,5 +1,9 @@
+import sys
 import time
 import socket
+from urllib.error import URLError
+
+from selenium.common.exceptions import WebDriverException
 
 from crawler.HTML_parser import HTMLParser
 from crawler.robotparser import RobotFileParser
@@ -28,7 +32,13 @@ class Spider:
         domain = urlparse(self.working_url).netloc
 
         self.working_domain_rules.set_url('https://' + domain + '/robots.txt')
-        self.working_domain_rules.read()
+
+        try:
+            self.working_domain_rules.read()
+        except URLError as err:
+            print(f'{TAG}[ID {self.id}] URLError occurred: {err}')
+        except TimeoutError as err:
+            print(f'{TAG}[ID {self.id}] TimeoutError occurred: {err}')
 
     def sleep_until(self, timeout):
         mustend = time.time() + timeout
@@ -68,7 +78,17 @@ class Spider:
                         self.frontier_manager.put(self.working_url, site_map_url)
 
                 # Get HTML code fom web page on working URL.
-                self.web_driver.get(self.working_url)
+                try:
+                    self.web_driver.get(self.working_url)
+                except URLError as err:
+                    print(f'{TAG}[ID {self.id}] URLError occurred: {err}')
+                except TimeoutError as err:
+                    print(f'{TAG}[ID {self.id}] TimeoutError occurred: {err}')
+                except WebDriverException as err:
+                    print(f'{TAG}[ID {self.id}] WebDriverException occurred: {err}')
+                except:
+                    print(f'{TAG}[ID {self.id}] Unexpected error:{sys.exc_info()[0]}')
+
                 html = self.web_driver.page_source
 
                 # Set working html code.
