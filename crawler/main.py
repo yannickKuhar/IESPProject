@@ -4,10 +4,10 @@ from threading import Thread
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-from frontier_manager import FrontierManager
-from spider import Spider
+from crawler.frontier_manager import FrontierManager
+from crawler.spider import Spider
 
-from crawler.db import Db
+# from crawler.db import Db
 
 SEEDS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
@@ -17,7 +17,7 @@ class Crawler:
     def __init__(self, workers, seed=0):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
-        self.database = Db(workers)
+        # self.database = Db(workers)
         self.workers = workers
         self.seed_url = SEEDS[seed]
         self.frontier_manager = FrontierManager()
@@ -26,7 +26,7 @@ class Crawler:
 
     def crawl(self):
         for i in range(self.workers):
-            s = Spider(id=i, seed_url=self.seed_url, web_driver=self.web_driver, frontier_manager=self.frontier_manager, database=self.database)
+            s = Spider(id=i, seed_url=self.seed_url, web_driver=self.web_driver, frontier_manager=self.frontier_manager, database=None)
             t = Thread(target=s.crawl, daemon=True)
             t.start()
             self.spiders.append(t)
@@ -38,7 +38,12 @@ class Crawler:
 
 
 def main(args):
-    c = Crawler(workers=5, seed=0)
+    workers = int(args[1])
+    seed = int(args[2])
+
+    print(workers, seed)
+
+    c = Crawler(workers=workers, seed=seed)
     c.crawl()
 
 

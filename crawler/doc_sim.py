@@ -41,6 +41,7 @@ class doc_similarity:
             q1 = hashed_text[8:16]
             q2 = hashed_text[16:24]
             q3 = hashed_text[24:32]
+
             return True, q0, q1, q2, q3
         else:
             # More in-depth comparison of the seemingly similar documents
@@ -50,6 +51,7 @@ class doc_similarity:
                 q1 = hashed_text[8:16]
                 q2 = hashed_text[16:24]
                 q3 = hashed_text[24:32]
+
                 return True, q0, q1, q2, q3
             else:
                 # Document is too similar to some other document, reject it
@@ -184,4 +186,3 @@ if __name__ == '__main__':
             # Dodaj v bazo
             # Izpisi stanje baze
             pass
-

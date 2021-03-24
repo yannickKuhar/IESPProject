@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, MetaData, inspect
+from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.automap import automap_base, name_for_collection_relationship
 from sqlalchemy.orm import Session
@@ -33,6 +33,7 @@ class Db:
         self.Page_type = self.Base.classes.page_type
         self.Page_data = self.Base.classes.page_data
         self.Data_type = self.Base.classes.data_type
+        self.Hashes = self.Base.classes.hashes
         self.session = Session(bind=self.engine)
 
     @staticmethod
@@ -83,3 +84,28 @@ class Db:
         self.session.add(page1)
         self.session.commit()
         return page1
+
+    def add_hash(self, data):
+        new_Hash = self.Hashes(**data)
+        self.session.add(new_Hash)
+        self.session.commit()
+        return new_Hash
+
+    def get_all_hashes(self):
+        res = self.session.query(self.Hashes).all()
+        h0 = []
+        h1 = []
+        h2 = []
+        h3 = []
+        ids =[]
+        for hashes in res:
+            ids.append(hashes.of_page)
+            h0.append(hashes.hash0)
+            h1.append(hashes.hash1)
+            h2.append(hashes.hash2)
+            h3.append(hashes.hash3)
+        return ids, h0, h1, h2, h3
+
+
+database = Db(5)
+database.get_all_hashes()
