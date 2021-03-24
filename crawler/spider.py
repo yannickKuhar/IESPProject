@@ -29,18 +29,19 @@ class Spider:
         # print(f'{TAG} Spider with Id: {id} init done.')
 
     def set_working_domain_rules(self):
-
         # Get current working URLs domain and parse its robots.txt file.
-        domain = urlparse(self.working_url).netloc
+        if self.working_url is not None:
 
-        self.working_domain_rules.set_url('https://' + domain + '/robots.txt')
+            domain = urlparse(self.working_url).netloc
 
-        try:
-            self.working_domain_rules.read()
-        except URLError as err:
-            print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
-        except TimeoutError as err:
-            print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
+            self.working_domain_rules.set_url('https://' + domain + '/robots.txt')
+
+            try:
+                self.working_domain_rules.read()
+            except URLError as err:
+                print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
+            except TimeoutError as err:
+                print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
 
     def sleep_until(self, timeout):
 
@@ -52,13 +53,20 @@ class Spider:
             if not self.frontier_manager.frontier.empty():
                 return False
 
-            time.sleep(10)
+            time.sleep(5)
 
         return True
 
     def crawl(self):
 
-        while len(self.working_url) > 0:
+        while True:
+
+            # If the current working URL is None it means the spider was launched with an empty frontier and needs to do
+            # a short sleep. After the sleep the frontier should be nonempty.
+            if self.working_url is None:
+                if self.sleep_until(30):
+                    print(f'{TAG} [ID {self.id}] Stopped crawling, URL is None!')
+                    return
 
             print(f'{TAG} [ID {self.id}] Crawling on {self.working_url}')
 
@@ -67,15 +75,16 @@ class Spider:
 
                 crawl_delay = self.working_domain_rules.crawl_delay("*")
                 domain = urlparse(self.working_url).netloc
+                ip = None
 
                 try:
                     ip = socket.gethostbyname(domain)
                 except socket.gaierror as err:
-                    ip = None
                     print(f'{TAG} [ID {self.id}] Socket error: {err}')
                 except:
                     print(f'{TAG} [ID {self.id}] Unexpected error:{sys.exc_info()[0]}')
 
+                # If we sent a request to the same ip address sleep for 5 seconds to preserve server stability.
                 if crawl_delay is not None:
                     time.sleep(float(crawl_delay))
                 elif self.previous_ip is not None and ip == self.previous_ip:
@@ -84,6 +93,7 @@ class Spider:
 
                 self.previous_ip = ip
 
+                # Add site_maps URLs from robots.txt file to frontier if they exist.
                 if self.working_domain_rules.site_maps() is not None:
                     for site_map_url in list(self.working_domain_rules.site_maps()):
                         # print(f'{TAG} [ID {self.id}] Site map url: {site_map_url}')
@@ -110,7 +120,8 @@ class Spider:
                 for link in self.html_parser.get_links():
                     self.frontier_manager.put(self.working_url, link)
 
-                # Terminate.
+                # Terminate if frontier remains empty for 60 seconds. In the mean time check every 10 seconds if new
+                # URLs were added. If yes continue working, if no terminate crawling.
                 if self.frontier_manager.frontier.empty():
                     if self.sleep_until(60):
                         print(f'{TAG} [ID {self.id}] Stopped crawling.')

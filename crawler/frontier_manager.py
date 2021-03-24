@@ -55,6 +55,8 @@ class FrontierManager:
 
     def get(self):
         with self.lock:
-            val = self.frontier.get(timeout=5)
-            self.frontier.task_done()
+            val = None
+            if not self.frontier.empty():
+                val = self.frontier.get()
+                self.frontier.task_done()
         return val
