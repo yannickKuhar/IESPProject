@@ -9,41 +9,39 @@ from crawler.spider import Spider
 
 # from crawler.db import Db
 
-SEEDS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
+TAG = '[CRAWLER]'
 
 
 class Crawler:
-    def __init__(self, workers, seed=0):
+    def __init__(self, workers):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         # self.database = Db(workers)
         self.workers = workers
-        self.seed_url = SEEDS[seed]
         self.frontier_manager = FrontierManager()
         self.web_driver = webdriver.Chrome(PATH, options=chrome_options)
         self.spiders = []
 
     def crawl(self):
         for i in range(self.workers):
-            s = Spider(id=i, seed_url=self.seed_url, web_driver=self.web_driver, frontier_manager=self.frontier_manager, database=None)
-            t = Thread(target=s.crawl, daemon=True)
-            t.start()
-            self.spiders.append(t)
+            spider = Spider(id=i, web_driver=self.web_driver, frontier_manager=self.frontier_manager, database=None)
+            thread = Thread(target=spider.crawl, daemon=True)
+            thread.start()
+            self.spiders.append(thread)
 
         for spider in self.spiders:
             spider.join()
 
         self.frontier_manager.frontier.join()
 
-# TODO Change how seeds work
+
 def main(args):
     workers = int(args[1])
-    seed = int(args[2])
 
-    print(workers, seed)
+    print(f'{TAG} Number of workers: {workers}')
 
-    c = Crawler(workers=workers, seed=seed)
+    c = Crawler(workers=workers)
     c.crawl()
 
 

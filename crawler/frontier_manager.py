@@ -7,6 +7,7 @@ from queue import Queue
 from urllib.parse import urljoin
 
 TAG = '[FRONTIER MANAGER]'
+SEEDS = ['https://gov.si', 'https://evem.gov.si', 'https://e-uprava.gov.si', 'https://e-prostor.gov.si']
 
 
 class FrontierManager:
@@ -22,6 +23,9 @@ class FrontierManager:
             r'(?:/?|[/?]\S+)$', re.IGNORECASE)
         self.gov_regex = re.compile('.*gov\.si.*', re.IGNORECASE)
         self.history = []
+
+        for seed in SEEDS:
+            self.frontier.put(seed)
 
     def put(self, seed, url):
 
@@ -51,6 +55,6 @@ class FrontierManager:
 
     def get(self):
         with self.lock:
-            val = self.frontier.get()
+            val = self.frontier.get(timeout=5)
             self.frontier.task_done()
         return val

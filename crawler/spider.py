@@ -14,17 +14,19 @@ TAG = '[SPIDER]'
 
 
 class Spider:
-    def __init__(self, id, seed_url, web_driver, frontier_manager, database):
+    def __init__(self, id, web_driver, frontier_manager, database):
         self.id = id
-        self.working_url = seed_url
+        self.frontier_manager = frontier_manager
         self.working_domain_rules = RobotFileParser()
         self.previous_ip = None
         self.web_driver = web_driver
-        self.frontier_manager = frontier_manager
         self.html_parser = HTMLParser()
         self.database = database
+        self.working_url = self.frontier_manager.get()
 
         self.set_working_domain_rules()
+
+        # print(f'{TAG} Spider with Id: {id} init done.')
 
     def set_working_domain_rules(self):
 
@@ -36,11 +38,14 @@ class Spider:
         try:
             self.working_domain_rules.read()
         except URLError as err:
-            print(f'{TAG}[ID {self.id}] URLError occurred: {err}')
+            print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
         except TimeoutError as err:
-            print(f'{TAG}[ID {self.id}] TimeoutError occurred: {err}')
+            print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
 
     def sleep_until(self, timeout):
+
+        print(f'{TAG} [ID {self.id}] Is in sleep mode.')
+
         mustend = time.time() + timeout
 
         while time.time() < mustend:
@@ -62,7 +67,14 @@ class Spider:
 
                 crawl_delay = self.working_domain_rules.crawl_delay("*")
                 domain = urlparse(self.working_url).netloc
-                ip = socket.gethostbyname(domain)
+
+                try:
+                    ip = socket.gethostbyname(domain)
+                except socket.gaierror as err:
+                    ip = None
+                    print(f'{TAG} [ID {self.id}] Socket error: {err}')
+                except:
+                    print(f'{TAG} [ID {self.id}] Unexpected error:{sys.exc_info()[0]}')
 
                 if crawl_delay is not None:
                     time.sleep(float(crawl_delay))
@@ -81,13 +93,13 @@ class Spider:
                 try:
                     self.web_driver.get(self.working_url)
                 except URLError as err:
-                    print(f'{TAG}[ID {self.id}] URLError occurred: {err}')
+                    print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
                 except TimeoutError as err:
-                    print(f'{TAG}[ID {self.id}] TimeoutError occurred: {err}')
+                    print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
                 except WebDriverException as err:
-                    print(f'{TAG}[ID {self.id}] WebDriverException occurred: {err}')
+                    print(f'{TAG} [ID {self.id}] WebDriverException occurred: {err}')
                 except:
-                    print(f'{TAG}[ID {self.id}] Unexpected error:{sys.exc_info()[0]}')
+                    print(f'{TAG} [ID {self.id}] Unexpected error:{sys.exc_info()[0]}')
 
                 html = self.web_driver.page_source
 
