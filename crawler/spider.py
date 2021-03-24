@@ -119,16 +119,15 @@ class Spider:
                 # Get all links.
                 for link in self.html_parser.get_links():
                     self.frontier_manager.put(self.working_url, link)
-
-                # Terminate if frontier remains empty for 60 seconds. In the mean time check every 10 seconds if new
-                # URLs were added. If yes continue working, if no terminate crawling.
-                if self.frontier_manager.frontier.empty():
-                    if self.sleep_until(60):
-                        print(f'{TAG} [ID {self.id}] Stopped crawling.')
-                        return
-
             else:
                 print(f'{TAG} [ID {self.id}] Cant crawl on {self.working_url}, it is illegal!')
+
+            # Terminate if frontier remains empty for 60 seconds. In the mean time check every 10 seconds if new
+            # URLs were added. If yes continue working, if no terminate crawling.
+            if self.frontier_manager.frontier.empty():
+                if self.sleep_until(60):
+                    print(f'{TAG} [ID {self.id}] Stopped crawling.')
+                    return
 
             self.working_url = self.frontier_manager.get()
             self.set_working_domain_rules()
