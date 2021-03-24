@@ -4,6 +4,8 @@ from operator import add
 import re
 from collections import Counter
 import operator
+from datetime import datetime
+from crawler.db import Db
 
 """
 Zakomentiraj line 30
@@ -20,22 +22,24 @@ def preprocess_text(text):
 
 
 class doc_similarity:
-    def __init__(self, database, jaccard_threshold=0.8):
+    def __init__(self, database, hash_sim=2, jaccard_threshold=0.8):
         self.jaccard_threshold = jaccard_threshold
         self.text_db = {}
         self.database = database
+        self.jaccard_counter = 0
+        self.hash_sim = hash_sim
 
     def similarity(self, text):
-        # text = preprocess_text(text)
+        text = preprocess_text(text)
         hashed_text = self.hash_text(text)
         # self.print_hash(hashed_text)
-
         occurences = self.in_hash_tables(hashed_text)
         print(occurences)
         occurences = Counter(occurences)
+
         occurences = dict(sorted(occurences.items(), key=operator.itemgetter(1), reverse=True))
 
-        if not len(occurences) or occurences[list(occurences.keys())[0]] < 2:
+        if not len(occurences) or occurences[list(occurences.keys())[0]] < self.hash_sim:
             # Document is not similar to any other document, add it to hash_tables
             q0 = hashed_text[0:8]
             q1 = hashed_text[8:16]
@@ -56,17 +60,18 @@ class doc_similarity:
             else:
                 # Document is too similar to some other document, reject it
                 print("Namaste.")
-                return False
+                return False, 0, 0, 0, 0
 
     def in_depth_check(self, current_text, occurences):
         for x in occurences:
-            if occurences[x] > 1:
-                ref_text = self.text_db[x]
+            if occurences[x] > self.hash_sim-1:
+                self.jaccard_counter += 1
+                ref_text = preprocess_text(self.database.get_page_by_id(x).html_content)
                 # More in-depth comparison
                 js = self.jaccard_dist(current_text, ref_text)
-                """print("Current: ", current_text)
-                print("Reference: ", ref_text)
-                print(js)"""
+                # print("Current: ", current_text)
+                # print("Reference: ", ref_text)
+                # print(js)
                 if js > self.jaccard_threshold:
                     return False
             else:
@@ -81,7 +86,11 @@ class doc_similarity:
         return len(presek) / len(unija)
 
     def in_hash_tables(self, hashed_text):
-        hash0, hash1, hash2, hash3 = self.db2dict(*self.database.get_all_hashes())
+        t = self.database.get_all_hashes()
+        if len(t[0]) == 0:
+            return []
+
+        hash0, hash1, hash2, hash3 = self.db2dict(*t)
         q0 = hashed_text[0:8]
         q1 = hashed_text[8:16]
         q2 = hashed_text[16:24]
@@ -161,7 +170,7 @@ class doc_similarity:
                 dict3[h3].append(idd)
             else:
                 dict3[h3] = [idd]
-        return dict0
+        return dict0, dict1, dict2, dict3
 
 
 text0 = "Nasus is an imposing, jackal-headed Ascended—those heroic and god-like figures once revered by the people of Shurima. Fiercely intelligent, he was a guardian of knowledge and peerless strategist whose wisdom guided the empire to greatness for many centuries. After the failed Ascension of Azir, Nasus went into self-imposed exile, becoming little more than a legend. Now that the Sun Disc has risen once more, he has returned, determined to ensure it never falls again."
@@ -175,14 +184,94 @@ text7 = "He was born to mother and father. He was a monk know as Xyz."
 text8 = "He was born to father and mother. He were an priest know as Xyz."
 
 if __name__ == '__main__':
-
-    texts = [text0, text1, text2, text3, text4, text5, text6, text7, text8]
-
-    ds = doc_similarity("Namaste.")
-
+    ds = doc_similarity(Db(5),1)
+    page0 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp.si",
+        "html_content": "<html>" + text0 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page1 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp1.si",
+        "html_content": "<html>" + text1 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page2 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp2.si",
+        "html_content": "<html>" + text2 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page3 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp3.si",
+        "html_content": "<html>" + text3 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page4 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp4.si",
+        "html_content": "<html>" + text4 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page5 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp5.si",
+        "html_content": "<html>" + text5 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page6 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp6.si",
+        "html_content": "<html>" + text6 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page7 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp7.si",
+        "html_content": "<html>" + text7 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    page8 = {
+        "site_id": 13,
+        "page_type_code": "HTML",
+        "url": "temp8.si",
+        "html_content": "<html>" + text8 + "</html>",
+        "http_status_code": 200,
+        "accessed_time": datetime.now(),
+    }
+    texts = [page0, page1, page2, page3, page4, page5, page6, page7, page8]
+    ds.database.delete_table("hashes")
+    ds.database.delete_table("page")
     for x in range(9):
-        ret, q0, q1, q2, q3 = ds.similarity(texts[x])
+        print(x)
+        ret, q0, q1, q2, q3 = ds.similarity(texts[x]["html_content"])
         if ret:
             # Dodaj v bazo
+            page = ds.database.add_page(texts[x])
+            ds.database.add_hash({
+                "of_page": page.id,
+                "hash0": q0,
+                "hash1": q1,
+                "hash2": q2,
+                "hash3": q3,
+            })
             # Izpisi stanje baze
-            pass
+    print(ds.jaccard_counter)
