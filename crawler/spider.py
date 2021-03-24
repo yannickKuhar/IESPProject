@@ -1,4 +1,9 @@
+import sys
 import time
+import socket
+from urllib.error import URLError
+
+from selenium.common.exceptions import WebDriverException
 
 from crawler.HTML_parser import HTMLParser
 from crawler.robotparser import RobotFileParser
@@ -13,6 +18,7 @@ class Spider:
         self.id = id
         self.working_url = seed_url
         self.working_domain_rules = RobotFileParser()
+        self.previous_ip = None
         self.web_driver = web_driver
         self.frontier_manager = frontier_manager
         self.html_parser = HTMLParser()
@@ -26,7 +32,24 @@ class Spider:
         domain = urlparse(self.working_url).netloc
 
         self.working_domain_rules.set_url('https://' + domain + '/robots.txt')
-        self.working_domain_rules.read()
+
+        try:
+            self.working_domain_rules.read()
+        except URLError as err:
+            print(f'{TAG}[ID {self.id}] URLError occurred: {err}')
+        except TimeoutError as err:
+            print(f'{TAG}[ID {self.id}] TimeoutError occurred: {err}')
+
+    def sleep_until(self, timeout):
+        mustend = time.time() + timeout
+
+        while time.time() < mustend:
+            if not self.frontier_manager.frontier.empty():
+                return False
+
+            time.sleep(10)
+
+        return True
 
     def crawl(self):
 
@@ -37,13 +60,35 @@ class Spider:
             # Check if its legal to crawl on this site.
             if self.working_domain_rules.can_fetch("*", self.working_url):
 
+                crawl_delay = self.working_domain_rules.crawl_delay("*")
+                domain = urlparse(self.working_url).netloc
+                ip = socket.gethostbyname(domain)
+
+                if crawl_delay is not None:
+                    time.sleep(float(crawl_delay))
+                elif self.previous_ip is not None and ip == self.previous_ip:
+                    print(f'{TAG} [ID {self.id}] Is sleeping for 5 seconds!')
+                    time.sleep(5)
+
+                self.previous_ip = ip
+
                 if self.working_domain_rules.site_maps() is not None:
                     for site_map_url in list(self.working_domain_rules.site_maps()):
-                        print(f'{TAG} [ID {self.id}] Site map url: {site_map_url}')
+                        # print(f'{TAG} [ID {self.id}] Site map url: {site_map_url}')
                         self.frontier_manager.put(self.working_url, site_map_url)
 
                 # Get HTML code fom web page on working URL.
-                self.web_driver.get(self.working_url)
+                try:
+                    self.web_driver.get(self.working_url)
+                except URLError as err:
+                    print(f'{TAG}[ID {self.id}] URLError occurred: {err}')
+                except TimeoutError as err:
+                    print(f'{TAG}[ID {self.id}] TimeoutError occurred: {err}')
+                except WebDriverException as err:
+                    print(f'{TAG}[ID {self.id}] WebDriverException occurred: {err}')
+                except:
+                    print(f'{TAG}[ID {self.id}] Unexpected error:{sys.exc_info()[0]}')
+
                 html = self.web_driver.page_source
 
                 # Set working html code.
@@ -53,21 +98,14 @@ class Spider:
                 for link in self.html_parser.get_links():
                     self.frontier_manager.put(self.working_url, link)
 
-                # TODO: Other termination condition, this is suboptimal.
+                # Terminate.
                 if self.frontier_manager.frontier.empty():
-                    print(f'{TAG} [ID {self.id}] Stopped crawling. ')
-                    return
+                    if self.sleep_until(60):
+                        print(f'{TAG} [ID {self.id}] Stopped crawling.')
+                        return
+
             else:
                 print(f'{TAG} [ID {self.id}] Cant crawl on {self.working_url}, it is illegal!')
 
-            # Set a new url to be crawled and parse ist robot.txt file.
             self.working_url = self.frontier_manager.get()
             self.set_working_domain_rules()
-
-            # Wait for at least 5 seconds per request or wait for crawl_delay seconds.
-            crawl_delay = self.working_domain_rules.crawl_delay("*")
-
-            if crawl_delay is not None:
-                time.sleep(float(crawl_delay))
-            else:
-                time.sleep(5)
