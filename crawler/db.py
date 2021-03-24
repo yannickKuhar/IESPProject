@@ -91,13 +91,16 @@ class Db:
         self.session.commit()
         return new_Hash
 
+    def get_page_by_id(self, id):
+        return self.session.query(self.Page).get(id)
+
     def get_all_hashes(self):
         res = self.session.query(self.Hashes).all()
         h0 = []
         h1 = []
         h2 = []
         h3 = []
-        ids =[]
+        ids = []
         for hashes in res:
             ids.append(hashes.of_page)
             h0.append(hashes.hash0)
@@ -106,6 +109,20 @@ class Db:
             h3.append(hashes.hash3)
         return ids, h0, h1, h2, h3
 
+    def delete_table(self, which):
+        self.session.execute(text("delete from crawldb." + which))
+        self.session.commit()
 
-database = Db(5)
-database.get_all_hashes()
+    def print_base(self):
+        pages = self.session.query(self.Page).all()
+        hashes = self.session.query(self.Hashes).all()
+        print("PAGES:\n{id: <3} {html_content: <3500}".format(id="id", html_content="Html content"), )
+        for page in pages:
+            print("{id: <3} {html_content: <3500}".format(id=page.id, html_content=page.html_content))
+        print("\nHASHES:\n{Page_id: <3} {Hash0: <8} {Hash1: <8} {Hash2: <8} {Hash3: <8}".format(Page_id="Page_id", Hash0="hash0",
+                                                                                                                   Hash1="Hash1",
+                                                                                                                   Hash2="Hash2",
+                                                                                                                   Hash3="Hash3"))
+        for hash in hashes:
+            print("{Page_id: <3} {Hash0: <8} {Hash1: <8} {Hash2: <8} {Hash3: <8}".format(Page_id=hash.of_page, Hash0=hash.hash0, Hash1=hash.hash1, Hash2=hash.hash2, Hash3=hash.hash3))
+        print("==========================================")

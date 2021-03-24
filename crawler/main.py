@@ -36,7 +36,7 @@ class Crawler:
 
         self.frontier_manager.frontier.join()
 
-
+# TODO Change how seeds work
 def main(args):
     workers = int(args[1])
     seed = int(args[2])
