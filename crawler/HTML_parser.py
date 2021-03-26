@@ -24,7 +24,6 @@ class HTMLParser:
 
     def set_working_html(self, html):
         self.soup = BeautifulSoup(html, features='html.parser')
-        # self.soup.prettify()
 
     def get_links(self):
         href_links = [i.get("href") for i in self.soup.find_all("a")]
