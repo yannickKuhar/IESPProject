@@ -18,7 +18,8 @@ class Spider:
     def __init__(self, id, frontier_manager, database):
         self.id = id
         self.frontier_manager = frontier_manager
-        self.working_domain_rules = RobotFileParser()
+        # self.working_domain_rules = RobotFileParser()
+        self.working_domain_rules = None
         self.previous_ip = None
         self.html_parser = HTMLParser()
         self.database = database
@@ -34,14 +35,24 @@ class Spider:
 
             domain = urlparse(self.working_url).netloc
 
-            self.working_domain_rules.set_url('https://' + domain + '/robots.txt')
+            rules = self.frontier_manager.get_domain_rules(domain)
 
-            try:
-                self.working_domain_rules.read()
-            except URLError as err:
-                print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
-            except TimeoutError as err:
-                print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
+            if rules is not None:
+                self.working_domain_rules = rules
+            else:
+                robots_url = f'https://{domain}/robots.txt'
+                new_rules = RobotFileParser()
+                new_rules.set_url(robots_url)
+
+                try:
+                    new_rules.read()
+                except URLError as err:
+                    print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
+                except TimeoutError as err:
+                    print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
+
+                self.frontier_manager.put_domain_rules(domain, new_rules)
+                self.working_domain_rules = new_rules
 
     def sleep_until(self, timeout):
 
@@ -103,7 +114,7 @@ class Spider:
                 response = None
 
                 try:
-                    response = requests.get(self.working_url, timeout=3)
+                    response = requests.get(self.working_url)
                 except requests.HTTPError:
                     print(f'{TAG} [ID {self.id}] {ERROR} An HTTP error occurred.')
                 except requests.ConnectionError:
