@@ -17,6 +17,8 @@
 | Db | An interface for working with our database. |
 | RobotFileParser | Parses each domain's robot.txt file. |
 
+<img src="crawler/crawler.png" width=550>
+
 ## Installation and use
 We added a **requirements.txt** for easier installation. After cloning the repository go to the IESPProject folder and run the following command:
 ```
