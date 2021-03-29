@@ -161,7 +161,7 @@ class Spider:
                             page = self.database.add_page({
                                 "site_id": self.current_site.id,
                                 "page_type_code": "HTML",
-                                "url": cannonized_url,
+                                "url": str(cannonized_url),
                                 "html_content": html,
                                 "http_status_code": response.status_code,
                                 "accessed_time": datetime.now()
@@ -178,7 +178,7 @@ class Spider:
                         page = self.database.add_page({
                             "site_id": self.current_site.id,
                             "page_type_code": "DUPLICATE",
-                            "url": cannonized_url,
+                            "url": str(cannonized_url),
                             "html_content": None,
                             "http_status_code": response.status_code,
                             "accessed_time": datetime.now()
@@ -203,7 +203,7 @@ class Spider:
                             "page_type_code": "FRONTIER",
                             "site_id": self.current_site.id
                         })
-                        self.database.add_link(temp_page)
+                        self.database.add_link(page, temp_page)
 
                     # Get all images
                     for filename, extension, accessed_time in self.html_parser.get_images():
@@ -214,13 +214,13 @@ class Spider:
                             "accessed_time": accessed_time,
                             "data": None
                         })
-                else:
+                elif type in types:
                     cannonized_url = urlcanon.parse_url(self.working_url)
                     urlcanon.whatwg(cannonized_url)
                     page = self.database.add_page({
                         "site_id": self.current_site.id,
                         "html_content": None,
-                        "url": cannonized_url,
+                        "url": str(cannonized_url),
                         "accessed_time": datetime.now(),
                         "page_type_code": "BINARY"
                     })
@@ -229,6 +229,8 @@ class Spider:
                         "data_type_code": types[type],
                         "data": None
                     })
+                else:
+                    print(f'{TAG} [ID {self.id}] Cant crawl on {self.working_url}, wrong data type!')
             else:
                 print(f'{TAG} [ID {self.id}] Cant crawl on {self.working_url}, it is illegal!')
 

@@ -174,6 +174,7 @@ class doc_similarity:
         return dict0, dict1, dict2, dict3
 
 
+"""
 text0 = "Nasus is an imposing, jackal-headed Ascended—those heroic and god-like figures once revered by the people of Shurima. Fiercely intelligent, he was a guardian of knowledge and peerless strategist whose wisdom guided the empire to greatness for many centuries. After the failed Ascension of Azir, Nasus went into self-imposed exile, becoming little more than a legend. Now that the Sun Disc has risen once more, he has returned, determined to ensure it never falls again."
 text1 = "Sadistic and cunning, Thresh is an ambitious and restless spirit of the Shadow Isles. Once the custodian of countless arcane secrets, he was undone by a power greater than life or death, and now sustains himself by tormenting and breaking others with slow, excruciating inventiveness. His victims suffer far beyond their brief mortal coil as Thresh wreaks agony upon their souls, imprisoning them in his unholy lantern to torture for all eternity."
 text2 = "Tropical fish include fish found in tropical environments around the world, including both freshwater and salt water species."
@@ -276,3 +277,4 @@ if __name__ == '__main__':
             })
             # Izpisi stanje baze
     print(ds.jaccard_counter)
+"""

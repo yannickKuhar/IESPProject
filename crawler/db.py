@@ -137,7 +137,10 @@ class Db:
         print("==========================================")
 
 
-db = Db(5)
-page = db.get_page_by_url("temp.si")
-page2 = db.get_page_by_url("temp2.si")
-db.add_link(page, page2)
+"""db = Db(5)
+db.delete_table("link")
+db.delete_table("hashes")
+db.delete_table("page")
+db.delete_table("page_type")
+db.delete_table("site")
+"""

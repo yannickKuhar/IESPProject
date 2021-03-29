@@ -3,8 +3,7 @@ from threading import Thread
 
 from crawler.frontier_manager import FrontierManager
 from crawler.spider import Spider
-
-# from crawler.db import Db
+from crawler.db import Db
 
 PATH = 'C:\Program Files (x86)\chromedriver.exe'
 TAG = '[CRAWLER]'
@@ -12,14 +11,14 @@ TAG = '[CRAWLER]'
 
 class Crawler:
     def __init__(self, workers):
-        # self.database = Db(workers)
+        self.database = Db(workers)
         self.workers = workers
         self.frontier_manager = FrontierManager()
         self.spiders = []
 
     def crawl(self):
         for i in range(self.workers):
-            spider = Spider(id=i, frontier_manager=self.frontier_manager, database=None)
+            spider = Spider(id=i, frontier_manager=self.frontier_manager, database=self.database)
             thread = Thread(target=spider.crawl, daemon=True)
             thread.start()
             self.spiders.append(thread)

@@ -43,5 +43,3 @@ class HTMLParser:
                   for img in self.soup.find_all('img') if img.get("src").split(".")[-1].lower() in extensions]
         return images
 
-
-temp = HTMLParser()
