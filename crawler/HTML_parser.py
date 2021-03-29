@@ -1,3 +1,6 @@
+import os
+from urllib.parse import urlparse
+
 from bs4 import BeautifulSoup
 from datetime import datetime
 import re
@@ -24,7 +27,7 @@ class HTMLParser:
         # self.soup.prettify()
 
     def get_links(self):
-        href_links = [i.get("href") for i in self.soup.find_all(href=True)]
+        href_links = [i.get("href") for i in self.soup.find_all("a")]
         js_links = []
         rez = href_links
         for i in self.soup.find_all(onclick=True):
@@ -33,13 +36,11 @@ class HTMLParser:
                 js_links.append(parsed)
         for l in js_links:
             rez += l
-        links_to_crawl = [r for r in rez if r.split(".")[-1].upper() not in page_extensions]
-        other_links = [r for r in rez if r.split(".")[-1].upper() in page_extensions]
         return rez
 
     def get_images(self):
-        images = [(img.get("src"), img.get("src").split(".")[-1], datetime.now())
-                  for img in self.soup.find_all('img') if img.get("src").split(".")[-1] in extensions]
+        images = [(os.path.basename(urlparse(img.get("src").path)), img.get("src").split(".")[-1], datetime.now())
+                  for img in self.soup.find_all('img') if img.get("src").split(".")[-1].lower() in extensions]
         return images
 
 

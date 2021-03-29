@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, MetaData, text
+from sqlalchemy import create_engine, MetaData, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.automap import automap_base, name_for_collection_relationship
 from sqlalchemy.orm import Session
@@ -60,6 +60,7 @@ class Db:
             return new_Page
         except IntegrityError:
             self.session.rollback()
+            raise IntegrityError
 
     def add_site(self, data):
         new_Site = self.Site(**data)
@@ -94,6 +95,14 @@ class Db:
     def get_page_by_id(self, id):
         return self.session.query(self.Page).get(id)
 
+    def get_page_by_url(self, url):
+        return self.session.execute(self.session.query(self.Page).where(self.Page.url == url)).first()[0]
+
+    def update_page_by_id(self, id, new_data):
+        self.session.execute(update(self.Page).where(self.Page.id == id).values(**new_data))
+        self.session.commit()
+        return self.session.query(self.Page).get(id)
+
     def get_all_hashes(self):
         res = self.session.query(self.Hashes).all()
         h0 = []
@@ -120,9 +129,15 @@ class Db:
         for page in pages:
             print("{id: <3} {html_content: <3500}".format(id=page.id, html_content=page.html_content))
         print("\nHASHES:\n{Page_id: <3} {Hash0: <8} {Hash1: <8} {Hash2: <8} {Hash3: <8}".format(Page_id="Page_id", Hash0="hash0",
-                                                                                                                   Hash1="Hash1",
-                                                                                                                   Hash2="Hash2",
-                                                                                                                   Hash3="Hash3"))
+                                                                                                Hash1="Hash1",
+                                                                                                Hash2="Hash2",
+                                                                                                Hash3="Hash3"))
         for hash in hashes:
             print("{Page_id: <3} {Hash0: <8} {Hash1: <8} {Hash2: <8} {Hash3: <8}".format(Page_id=hash.of_page, Hash0=hash.hash0, Hash1=hash.hash1, Hash2=hash.hash2, Hash3=hash.hash3))
         print("==========================================")
+
+
+db = Db(5)
+page = db.get_page_by_url("temp.si")
+page2 = db.get_page_by_url("temp2.si")
+db.add_link(page, page2)

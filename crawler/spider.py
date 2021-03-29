@@ -1,58 +1,66 @@
 import sys
 import time
 import socket
+from datetime import datetime
+
 import requests
 
 from urllib.parse import urlparse
 from urllib.error import URLError
+import urlcanon
+from sqlalchemy.exc import IntegrityError
 
 from crawler.HTML_parser import HTMLParser
 from crawler.robotparser import RobotFileParser
-
+from crawler.doc_sim import doc_similarity
 
 TAG = '[SPIDER]'
 ERROR = '[ERROR]'
+
+types = {
+    "msword": "DOC",
+    "vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+    "pdf": "PDF",
+    "vnd.ms-powerpoint": "PPT",
+    "vnd.openxmlformats-officedocument.presentationml.presentation": "PPTX"
+}
 
 
 class Spider:
     def __init__(self, id, frontier_manager, database):
         self.id = id
         self.frontier_manager = frontier_manager
-        # self.working_domain_rules = RobotFileParser()
-        self.working_domain_rules = None
+        self.working_domain_rules = RobotFileParser()
         self.previous_ip = None
         self.html_parser = HTMLParser()
         self.database = database
         self.working_url = self.frontier_manager.get()
-
+        self.domain = None
+        self.previous_domain = None
         self.set_working_domain_rules()
-
+        self.current_site = None
+        self.doc_sim = doc_similarity(self.database)
         # print(f'{TAG} Spider with Id: {id} init done.')
 
     def set_working_domain_rules(self):
         # Get current working URLs domain and parse its robots.txt file.
         if self.working_url is not None:
-
-            domain = urlparse(self.working_url).netloc
-
-            rules = self.frontier_manager.get_domain_rules(domain)
-
-            if rules is not None:
-                self.working_domain_rules = rules
-            else:
-                robots_url = f'https://{domain}/robots.txt'
-                new_rules = RobotFileParser()
-                new_rules.set_url(robots_url)
-
+            current_domain = urlparse(self.working_url).netloc
+            if self.domain != current_domain:
+                self.domain = current_domain
+                self.working_domain_rules.set_url('https://' + self.domain + '/robots.txt')
                 try:
-                    new_rules.read()
+                    self.working_domain_rules.read()
+                    if self.working_domain_rules is not None:
+                        self.current_site = self.database.add_site({
+                            "domain": self.domain,
+                            "robots_content": self.working_domain_rules.raw,
+                            "sitemap_content": "" if self.working_domain_rules.site_maps() is None else self.working_domain_rules.site_maps()
+                        })
                 except URLError as err:
                     print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
                 except TimeoutError as err:
                     print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
-
-                self.frontier_manager.put_domain_rules(domain, new_rules)
-                self.working_domain_rules = new_rules
 
     def sleep_until(self, timeout):
 
@@ -114,7 +122,7 @@ class Spider:
                 response = None
 
                 try:
-                    response = requests.get(self.working_url)
+                    response = requests.get(self.working_url, headers={'Content-type': 'content_type_value'})
                 except requests.HTTPError:
                     print(f'{TAG} [ID {self.id}] {ERROR} An HTTP error occurred.')
                 except requests.ConnectionError:
@@ -139,11 +147,88 @@ class Spider:
                     continue
 
                 # Set working html code.
-                self.html_parser.set_working_html(html)
+                type = response.headers["Content-Type"].split(" ")[0].split("/")[1] if ";" not in response.headers["Content-Type"] else response.headers["Content-Type"].split(" ")[0][:-1].split("/")[
+                    1]
+                if type == "html":
+                    self.html_parser.set_working_html(html)
+                    similarity = self.doc_sim.similarity(html)
 
-                # Get all links.
-                for link in self.html_parser.get_links():
-                    self.frontier_manager.put(self.working_url, link)
+                    cannonized_url = urlcanon.parse_url(self.working_url)
+                    urlcanon.whatwg(cannonized_url)
+
+                    if similarity[0]:
+                        try:
+                            page = self.database.add_page({
+                                "site_id": self.current_site.id,
+                                "page_type_code": "HTML",
+                                "url": cannonized_url,
+                                "html_content": html,
+                                "http_status_code": response.status_code,
+                                "accessed_time": datetime.now()
+                            })
+                        except IntegrityError:
+                            page = self.database.update_page_by_id(self.database.get_page_by_url(cannonized_url).id, {
+                                "page_type_code": "HTML",
+                                "html_content": html,
+                                "response": response.status_code,
+                                "accessed_time": datetime.now()
+                            })
+                    else:
+                        similar_page = self.database.get_page_by_id(similarity[-1])
+                        page = self.database.add_page({
+                            "site_id": self.current_site.id,
+                            "page_type_code": "DUPLICATE",
+                            "url": cannonized_url,
+                            "html_content": None,
+                            "http_status_code": response.status_code,
+                            "accessed_time": datetime.now()
+                        })
+                        page.add_link(similar_page)
+
+                    _ = self.database.add_hash({
+                        "of_page": page.id,
+                        "hash0": similarity[1],
+                        "hash1": similarity[2],
+                        "hash2": similarity[3],
+                        "hash3": similarity[4]
+                    })
+
+                    # Get all links.
+                    for link in self.html_parser.get_links():
+                        self.frontier_manager.put(self.working_url, link)
+                        temp_ulr = urlcanon.parse_url(link)
+                        urlcanon.whatwg(temp_ulr)
+                        temp_page = self.database.add_page({
+                            "url": temp_ulr,
+                            "page_type_code": "FRONTIER",
+                            "site_id": self.current_site.id
+                        })
+                        self.database.add_link(temp_page)
+
+                    # Get all images
+                    for filename, extension, accessed_time in self.html_parser.get_images():
+                        self.database.add_image({
+                            "page_id": page.id,
+                            "filename": filename,
+                            "content_type": extension,
+                            "accessed_time": accessed_time,
+                            "data": None
+                        })
+                else:
+                    cannonized_url = urlcanon.parse_url(self.working_url)
+                    urlcanon.whatwg(cannonized_url)
+                    page = self.database.add_page({
+                        "site_id": self.current_site.id,
+                        "html_content": None,
+                        "url": cannonized_url,
+                        "accessed_time": datetime.now(),
+                        "page_type_code": "BINARY"
+                    })
+                    self.database.add_page_data({
+                        "page_id": page.id,
+                        "data_type_code": types[type],
+                        "data": None
+                    })
             else:
                 print(f'{TAG} [ID {self.id}] Cant crawl on {self.working_url}, it is illegal!')
 
