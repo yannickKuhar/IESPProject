@@ -49,22 +49,23 @@ class doc_similarity:
             return True, q0, q1, q2, q3
         else:
             # More in-depth comparison of the seemingly similar documents
-            if self.in_depth_check(text, occurences):
-                # Document is not similar to any other document, add it to hash_tables
-                q0 = hashed_text[0:8]
-                q1 = hashed_text[8:16]
-                q2 = hashed_text[16:24]
-                q3 = hashed_text[24:32]
+            result_of_check = self.in_depth_check(text, occurences)
+            q0 = hashed_text[0:8]
+            q1 = hashed_text[8:16]
+            q2 = hashed_text[16:24]
+            q3 = hashed_text[24:32]
 
-                return True, q0, q1, q2, q3
+            if result_of_check[0]:
+                # Document is not similar to any other document, add it to hash_tables
+                return True, q0, q1, q2, q3, result_of_check[1]
             else:
                 # Document is too similar to some other document, reject it
                 print("Namaste.")
-                return False, 0, 0, 0, 0
+                return False, q0, q1, q2, q3, result_of_check[1]
 
     def in_depth_check(self, current_text, occurences):
         for x in occurences:
-            if occurences[x] > self.hash_sim-1:
+            if occurences[x] > self.hash_sim - 1:
                 self.jaccard_counter += 1
                 ref_text = preprocess_text(self.database.get_page_by_id(x).html_content)
                 # More in-depth comparison
@@ -73,10 +74,10 @@ class doc_similarity:
                 # print("Reference: ", ref_text)
                 # print(js)
                 if js > self.jaccard_threshold:
-                    return False
+                    return False, x
             else:
                 break
-        return True
+        return True, None
 
     @staticmethod
     def jaccard_dist(t1, t2):
@@ -184,7 +185,7 @@ text7 = "He was born to mother and father. He was a monk know as Xyz."
 text8 = "He was born to father and mother. He were an priest know as Xyz."
 
 if __name__ == '__main__':
-    ds = doc_similarity(Db(5),1)
+    ds = doc_similarity(Db(5), 1)
     page0 = {
         "site_id": 13,
         "page_type_code": "HTML",

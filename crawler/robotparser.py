@@ -29,6 +29,7 @@ class RobotFileParser:
         self.allow_all = False
         self.set_url(url)
         self.last_checked = 0
+        self.raw = None
 
     def mtime(self):
         """Returns the time the robots.txt file was last fetched.
@@ -60,6 +61,7 @@ class RobotFileParser:
                 self.allow_all = True
         else:
             raw = f.read()
+            self.raw = raw.decode("utf-8")
             self.parse(raw.decode("utf-8").splitlines())
 
     def _add_entry(self, entry):
