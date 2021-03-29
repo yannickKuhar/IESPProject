@@ -36,10 +36,10 @@ class HTMLParser:
                 js_links.append(parsed)
         for l in js_links:
             rez += l
-        return rez
+        return list(set(rez))
 
     def get_images(self):
-        images = [(os.path.basename(urlparse(img.get("src").path)), img.get("src").split(".")[-1], datetime.now())
+        images = [(os.path.basename(urlparse(img.get("src")).path), img.get("src").split(".")[-1], datetime.now())
                   for img in self.soup.find_all('img') if img.get("src").split(".")[-1].lower() in extensions]
         return images
 

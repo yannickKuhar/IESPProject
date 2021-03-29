@@ -34,7 +34,7 @@ class doc_similarity:
         hashed_text = self.hash_text(text)
         # self.print_hash(hashed_text)
         occurences = self.in_hash_tables(hashed_text)
-        print(occurences)
+        # print(occurences)
         occurences = Counter(occurences)
 
         occurences = dict(sorted(occurences.items(), key=operator.itemgetter(1), reverse=True))

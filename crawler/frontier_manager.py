@@ -42,7 +42,7 @@ class FrontierManager:
 
     def put(self, seed, url):
         if url is None:
-            return
+            return None
 
         # Is input valid URL
         if not re.match(self.url_regex, url):
@@ -53,17 +53,23 @@ class FrontierManager:
         # Is input valid gov.si URL
         if not re.match(self.gov_regex, url):
             # print(f'{TAG} string: {url} is not a valid gov URL!')
-            return
+            return None
 
         # Check for duplicates.
         with self.lock:
             if url not in self.history:
+                print(url)
+                print("START")
+                for x in self.history:
+                    print(x)
+                print("STOP")
                 self.history.append(url)
             else:
                 # print(f'{TAG} string: {url} is a duplicate!')
-                return
+                return None
 
             self.frontier.put(url)
+        return url
 
     def get(self):
         with self.lock:

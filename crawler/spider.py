@@ -37,8 +37,8 @@ class Spider:
         self.working_url = self.frontier_manager.get()
         self.domain = None
         self.previous_domain = None
-        self.set_working_domain_rules()
         self.current_site = None
+        self.set_working_domain_rules()
         self.doc_sim = doc_similarity(self.database)
         # print(f'{TAG} Spider with Id: {id} init done.')
 
@@ -147,8 +147,8 @@ class Spider:
                     continue
 
                 # Set working html code.
-                type = response.headers["Content-Type"].split(" ")[0].split("/")[1] if ";" not in response.headers["Content-Type"] else response.headers["Content-Type"].split(" ")[0][:-1].split("/")[
-                    1]
+                type = response.headers["Content-Type"].split(" ")[0].split("/")[1] if ";" not in response.headers["Content-Type"] else response.headers["Content-Type"].split(" ")[0].split("/")[
+                    1].split(";")[0]
                 if type == "html":
                     self.html_parser.set_working_html(html)
                     similarity = self.doc_sim.similarity(html)
@@ -157,7 +157,7 @@ class Spider:
                     urlcanon.whatwg(cannonized_url)
 
                     if similarity[0]:
-                        try:
+                        if not self.database.check_if_page_exists(str(cannonized_url)):
                             page = self.database.add_page({
                                 "site_id": self.current_site.id,
                                 "page_type_code": "HTML",
@@ -166,11 +166,11 @@ class Spider:
                                 "http_status_code": response.status_code,
                                 "accessed_time": datetime.now()
                             })
-                        except IntegrityError:
-                            page = self.database.update_page_by_id(self.database.get_page_by_url(cannonized_url).id, {
+                        else:
+                            page = self.database.update_page_by_id(self.database.get_page_by_url(str(cannonized_url)).id, {
                                 "page_type_code": "HTML",
                                 "html_content": html,
-                                "response": response.status_code,
+                                "http_status_code": response.status_code,
                                 "accessed_time": datetime.now()
                             })
                     else:
@@ -193,17 +193,23 @@ class Spider:
                         "hash3": similarity[4]
                     })
 
-                    # Get all links.
-                    for link in self.html_parser.get_links():
-                        self.frontier_manager.put(self.working_url, link)
-                        temp_ulr = urlcanon.parse_url(link)
+                    # Get all links
+                    temp_links = self.html_parser.get_links()
+                    if self.working_url in temp_links:
+                        temp_links.remove(self.working_url)
+                    for link in temp_links:
+                        temp = self.frontier_manager.put(self.working_url, link)
+                        if temp is None:
+                            continue
+                        temp_ulr = urlcanon.parse_url(temp)
                         urlcanon.whatwg(temp_ulr)
-                        temp_page = self.database.add_page({
-                            "url": temp_ulr,
-                            "page_type_code": "FRONTIER",
-                            "site_id": self.current_site.id
-                        })
-                        self.database.add_link(page, temp_page)
+                        if not self.database.check_if_page_exists(str(temp_ulr)):
+                            temp_page = self.database.add_page({
+                                "url": str(temp_ulr),
+                                "page_type_code": "FRONTIER",
+                                "site_id": self.current_site.id
+                            })
+                            self.database.add_link(page, temp_page)
 
                     # Get all images
                     for filename, extension, accessed_time in self.html_parser.get_images():

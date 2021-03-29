@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, MetaData, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.automap import automap_base, name_for_collection_relationship
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import exists
 
 """
 Class for working with database. 
@@ -103,6 +104,9 @@ class Db:
         self.session.commit()
         return self.session.query(self.Page).get(id)
 
+    def check_if_page_exists(self, url):
+        return self.session.query(exists().where(self.Page.url == url)).scalar()
+
     def get_all_hashes(self):
         res = self.session.query(self.Hashes).all()
         h0 = []
@@ -135,12 +139,3 @@ class Db:
         for hash in hashes:
             print("{Page_id: <3} {Hash0: <8} {Hash1: <8} {Hash2: <8} {Hash3: <8}".format(Page_id=hash.of_page, Hash0=hash.hash0, Hash1=hash.hash1, Hash2=hash.hash2, Hash3=hash.hash3))
         print("==========================================")
-
-
-"""db = Db(5)
-db.delete_table("link")
-db.delete_table("hashes")
-db.delete_table("page")
-db.delete_table("page_type")
-db.delete_table("site")
-"""
