@@ -23,12 +23,24 @@ class FrontierManager:
             r'(?:/?|[/?]\S+)$', re.IGNORECASE)
         self.gov_regex = re.compile('.*gov\.si.*', re.IGNORECASE)
         self.history = []
+        self.domain_rules = {}
 
         for seed in SEEDS:
             self.frontier.put(seed)
 
-    def put(self, seed, url):
+    def put_domain_rules(self, domain, rules):
+        with self.lock:
+            self.domain_rules[domain] = rules
 
+    def get_domain_rules(self, domain):
+        with self.lock:
+            # print(f'{TAG} Domains: {self.domain_rules.keys()}')
+            if domain in self.domain_rules:
+                return self.domain_rules[domain]
+
+            return None
+
+    def put(self, seed, url):
         if url is None:
             return
 

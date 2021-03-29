@@ -1,25 +1,26 @@
 import sys
 import time
 import socket
-from urllib.error import URLError
+import requests
 
-from selenium.common.exceptions import WebDriverException
+from urllib.parse import urlparse
+from urllib.error import URLError
 
 from crawler.HTML_parser import HTMLParser
 from crawler.robotparser import RobotFileParser
-from urllib.parse import urlparse
 
 
 TAG = '[SPIDER]'
+ERROR = '[ERROR]'
 
 
 class Spider:
-    def __init__(self, id, web_driver, frontier_manager, database):
+    def __init__(self, id, frontier_manager, database):
         self.id = id
         self.frontier_manager = frontier_manager
-        self.working_domain_rules = RobotFileParser()
+        # self.working_domain_rules = RobotFileParser()
+        self.working_domain_rules = None
         self.previous_ip = None
-        self.web_driver = web_driver
         self.html_parser = HTMLParser()
         self.database = database
         self.working_url = self.frontier_manager.get()
@@ -34,14 +35,24 @@ class Spider:
 
             domain = urlparse(self.working_url).netloc
 
-            self.working_domain_rules.set_url('https://' + domain + '/robots.txt')
+            rules = self.frontier_manager.get_domain_rules(domain)
 
-            try:
-                self.working_domain_rules.read()
-            except URLError as err:
-                print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
-            except TimeoutError as err:
-                print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
+            if rules is not None:
+                self.working_domain_rules = rules
+            else:
+                robots_url = f'https://{domain}/robots.txt'
+                new_rules = RobotFileParser()
+                new_rules.set_url(robots_url)
+
+                try:
+                    new_rules.read()
+                except URLError as err:
+                    print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
+                except TimeoutError as err:
+                    print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
+
+                self.frontier_manager.put_domain_rules(domain, new_rules)
+                self.working_domain_rules = new_rules
 
     def sleep_until(self, timeout):
 
@@ -100,18 +111,32 @@ class Spider:
                         self.frontier_manager.put(self.working_url, site_map_url)
 
                 # Get HTML code fom web page on working URL.
+                response = None
+
                 try:
-                    self.web_driver.get(self.working_url)
-                except URLError as err:
-                    print(f'{TAG} [ID {self.id}] URLError occurred: {err}')
-                except TimeoutError as err:
-                    print(f'{TAG} [ID {self.id}] TimeoutError occurred: {err}')
-                except WebDriverException as err:
-                    print(f'{TAG} [ID {self.id}] WebDriverException occurred: {err}')
+                    response = requests.get(self.working_url)
+                except requests.HTTPError:
+                    print(f'{TAG} [ID {self.id}] {ERROR} An HTTP error occurred.')
+                except requests.ConnectionError:
+                    print(f'{TAG} [ID {self.id}] {ERROR} A Connection error occurred.')
+                except requests.URLRequired:
+                    print(f'{TAG} [ID {self.id}] {ERROR} A valid URL is required to make a request.')
+                except requests.TooManyRedirects:
+                    print(f'{TAG} [ID {self.id}] {ERROR} Too many redirects.')
+                except requests.ReadTimeout:
+                    print(f'{TAG} [ID {self.id}] {ERROR} The server did not send any data in the allotted amount of time.')
+                except requests.Timeout:
+                    print(f'{TAG} [ID {self.id}] {ERROR} The request timed out.')
+                except requests.RequestException as e:
+                    print(e)
                 except:
                     print(f'{TAG} [ID {self.id}] Unexpected error:{sys.exc_info()[0]}')
 
-                html = self.web_driver.page_source
+                if response is not None:
+                    html = response.text
+                else:
+                    print(f'{TAG} [ID {self.id}] {ERROR} Response is None!')
+                    continue
 
                 # Set working html code.
                 self.html_parser.set_working_html(html)

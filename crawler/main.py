@@ -1,9 +1,6 @@
 import sys  
 from threading import Thread
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-
 from crawler.frontier_manager import FrontierManager
 from crawler.spider import Spider
 
@@ -15,17 +12,14 @@ TAG = '[CRAWLER]'
 
 class Crawler:
     def __init__(self, workers):
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
         # self.database = Db(workers)
         self.workers = workers
         self.frontier_manager = FrontierManager()
-        self.web_driver = webdriver.Chrome(PATH, options=chrome_options)
         self.spiders = []
 
     def crawl(self):
         for i in range(self.workers):
-            spider = Spider(id=i, web_driver=self.web_driver, frontier_manager=self.frontier_manager, database=None)
+            spider = Spider(id=i, frontier_manager=self.frontier_manager, database=None)
             thread = Thread(target=spider.crawl, daemon=True)
             thread.start()
             self.spiders.append(thread)
