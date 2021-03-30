@@ -41,6 +41,21 @@ class FrontierManager:
             return None
 
     def put(self, seed, url):
+        # if len(list(self.frontier.queue)) != len(set(self.frontier.queue)):
+        #     print("ADI!")
+        #     quit(0)
+        # if len(list(self.history)) != len(set(self.history)):
+        #     print("ADI!")
+        #     quit(0)
+        # if len(list(self.frontier.queue)+self.history) != len(set(self.frontier.queue).union(set(self.history))):
+        #     print("ADI SUPREME!")
+        #     for x in self.frontier.queue:
+        #         print(x)
+        #     print("SLAVC")
+        #     for x in self.history:
+        #         print(x)
+        #     print("PEJT V KURAC")
+        #     quit(0)
         if url is None:
             return None
 
@@ -49,7 +64,10 @@ class FrontierManager:
             # print(f'{TAG} string: {url} is not a valid URL!')
             # print(seed, url, urljoin(seed, url).rstrip('/'))
             url = urljoin(seed, url).rstrip('/')
-
+        if url in list(self.frontier.queue):
+            return None
+        if url in self.history:
+            return None
         # Is input valid gov.si URL
         if not re.match(self.gov_regex, url):
             # print(f'{TAG} string: {url} is not a valid gov URL!')
@@ -58,11 +76,11 @@ class FrontierManager:
         # Check for duplicates.
         with self.lock:
             if url not in self.history:
-                print(url)
-                print("START")
-                for x in self.history:
-                    print(x)
-                print("STOP")
+                # print(url)
+                # print("START")
+                # for x in self.history:
+                #     print(x)
+                # print("STOP")
                 self.history.append(url)
             else:
                 # print(f'{TAG} string: {url} is a duplicate!')
@@ -77,4 +95,5 @@ class FrontierManager:
             if not self.frontier.empty():
                 val = self.frontier.get()
                 self.frontier.task_done()
+                self.history.append(val)
         return val

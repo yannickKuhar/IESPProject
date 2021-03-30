@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, MetaData, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.automap import automap_base, name_for_collection_relationship
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql import exists
 
 """
@@ -35,7 +35,8 @@ class Db:
         self.Page_data = self.Base.classes.page_data
         self.Data_type = self.Base.classes.data_type
         self.Hashes = self.Base.classes.hashes
-        self.session = Session(bind=self.engine)
+        self.session_factory = sessionmaker(bind=self.engine)
+        self.session = scoped_session(self.session_factory)
 
     @staticmethod
     def page_fields():
@@ -102,10 +103,16 @@ class Db:
     def update_page_by_id(self, id, new_data):
         self.session.execute(update(self.Page).where(self.Page.id == id).values(**new_data))
         self.session.commit()
-        return self.session.query(self.Page).get(id)
+        page = self.session.query(self.Page).get(id)
+        return page
 
     def check_if_page_exists(self, url):
-        return self.session.query(exists().where(self.Page.url == url)).scalar()
+        ex = self.session.query(exists().where(self.Page.url == url)).scalar()
+        return ex
+
+    def check_if_hash_of_page_exists(self, of_page):
+        ex = self.session.query(exists().where(self.Hashes.of_page == of_page)).scalar()
+        return ex
 
     def get_all_hashes(self):
         res = self.session.query(self.Hashes).all()
@@ -120,6 +127,7 @@ class Db:
             h1.append(hashes.hash1)
             h2.append(hashes.hash2)
             h3.append(hashes.hash3)
+
         return ids, h0, h1, h2, h3
 
     def delete_table(self, which):

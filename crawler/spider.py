@@ -144,6 +144,13 @@ class Spider:
                     html = response.text
                 else:
                     print(f'{TAG} [ID {self.id}] {ERROR} Response is None!')
+                    if self.frontier_manager.frontier.empty():
+                        if self.sleep_until(60):
+                            print(f'{TAG} [ID {self.id}] Stopped crawling.')
+                            return
+
+                    self.working_url = self.frontier_manager.get()
+                    self.set_working_domain_rules()
                     continue
 
                 # Set working html code.
@@ -173,26 +180,35 @@ class Spider:
                                 "http_status_code": response.status_code,
                                 "accessed_time": datetime.now()
                             })
-                    else:
-                        similar_page = self.database.get_page_by_id(similarity[-1])
-                        page = self.database.add_page({
-                            "site_id": self.current_site.id,
-                            "page_type_code": "DUPLICATE",
-                            "url": str(cannonized_url),
-                            "html_content": None,
-                            "http_status_code": response.status_code,
-                            "accessed_time": datetime.now()
+                        _ = self.database.add_hash({
+                            "of_page": page.id,
+                            "hash0": similarity[1],
+                            "hash1": similarity[2],
+                            "hash2": similarity[3],
+                            "hash3": similarity[4]
                         })
-                        page.add_link(similar_page)
-
-                    _ = self.database.add_hash({
-                        "of_page": page.id,
-                        "hash0": similarity[1],
-                        "hash1": similarity[2],
-                        "hash2": similarity[3],
-                        "hash3": similarity[4]
-                    })
-
+                    else:
+                        if not self.database.check_if_page_exists(str(cannonized_url)):
+                            similar_page = self.database.get_page_by_id(similarity[-1])
+                            page = self.database.add_page({
+                                "site_id": self.current_site.id,
+                                "page_type_code": "DUPLICATE",
+                                "url": str(cannonized_url),
+                                "html_content": None,
+                                "http_status_code": response.status_code,
+                                "accessed_time": datetime.now()
+                            })
+                            page.add_link(similar_page)
+                            if not self.database.check_if_hash_of_page_exists(page.id):
+                                _ = self.database.add_hash({
+                                    "of_page": page.id,
+                                    "hash0": similarity[1],
+                                    "hash1": similarity[2],
+                                    "hash2": similarity[3],
+                                    "hash3": similarity[4]
+                                })
+                        else:
+                            page = self.database.get_page_by_url(str(cannonized_url))
                     # Get all links
                     temp_links = self.html_parser.get_links()
                     if self.working_url in temp_links:
@@ -223,18 +239,31 @@ class Spider:
                 elif type in types:
                     cannonized_url = urlcanon.parse_url(self.working_url)
                     urlcanon.whatwg(cannonized_url)
-                    page = self.database.add_page({
-                        "site_id": self.current_site.id,
-                        "html_content": None,
-                        "url": str(cannonized_url),
-                        "accessed_time": datetime.now(),
-                        "page_type_code": "BINARY"
-                    })
-                    self.database.add_page_data({
-                        "page_id": page.id,
-                        "data_type_code": types[type],
-                        "data": None
-                    })
+                    if not self.database.check_if_page_exists(str(cannonized_url)):
+                        page = self.database.add_page({
+                            "site_id": self.current_site.id,
+                            "html_content": None,
+                            "url": str(cannonized_url),
+                            "accessed_time": datetime.now(),
+                            "page_type_code": "BINARY"
+                        })
+                        self.database.add_page_data({
+                            "page_id": page.id,
+                            "data_type_code": types[type],
+                            "data": None
+                        })
+                    else:
+                        page = self.database.update_page_by_id(self.database.get_page_by_url(str(cannonized_url)).id, {
+                            "page_type_code": "BINARY",
+                            "html_content": None,
+                            "http_status_code": response.status_code,
+                            "accessed_time": datetime.now()
+                        })
+                        self.database.add_page_data({
+                            "page_id": page.id,
+                            "data_type_code": types[type],
+                            "data": None
+                        })
                 else:
                     print(f'{TAG} [ID {self.id}] Cant crawl on {self.working_url}, wrong data type!')
             else:
