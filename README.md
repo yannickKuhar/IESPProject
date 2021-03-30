@@ -37,10 +37,3 @@ python main.py
 ```
 
 which will run the crawler with 5 workers.
-
-## Division of work
-| Developer | Tasks |
-| ------ | ------ |
-| Yannick | Crawler implementation. |
-| Mark | Database implementation and integration.|
-| Rok | Data analysis, visualization and duplicate detection with  Locality-sensitive hashing.|
