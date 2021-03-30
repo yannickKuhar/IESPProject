@@ -36,8 +36,8 @@ def main(args):
         workers = int(args[1])
 
     if workers <= 0:
-        print(f'{TAG} [ERROR] Number of workers must be a positive integer!')
-        return
+        print(f'{TAG} [WARNING] Number of workers must be a positive integer! Will default to 5 workers.')
+        workers = 5
 
     print(f'{TAG} Number of workers: {workers}')
 
