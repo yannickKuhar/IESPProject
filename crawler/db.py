@@ -4,6 +4,9 @@ from sqlalchemy.ext.automap import automap_base, name_for_collection_relationshi
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql import exists
 
+from pyvis.network import Network
+import networkx as nx
+
 """
 Class for working with database. 
 Few rules: 
@@ -147,3 +150,22 @@ class Db:
         for hash in hashes:
             print("{Page_id: <3} {Hash0: <8} {Hash1: <8} {Hash2: <8} {Hash3: <8}".format(Page_id=hash.of_page, Hash0=hash.hash0, Hash1=hash.hash1, Hash2=hash.hash2, Hash3=hash.hash3))
         print("==========================================")
+
+    def visualize(self):
+        net = Network("1200px", "1200px")
+        from_pages = self.session.execute(text("SELECT crawldb.link.from_page from crawldb.link"))
+        from_pages = [(page, self.get_page_by_id(page).url) for page in set([rez[0] for rez in from_pages])]
+        to_pages = self.session.execute(text("SELECT crawldb.link.to_page from crawldb.link"))
+        to_pages = [(page, self.get_page_by_id(page).url) for page in set([rez[0] for rez in to_pages])]
+        for node_id, url in from_pages+to_pages:
+            net.add_node(node_id, label=url)
+        edges = self.session.execute(text("SELECT crawldb.link.from_page,crawldb.link.to_page from crawldb.link"))
+        for edge in edges:
+            net.add_edge(edge[0], edge[1])
+        net.show("links.html")
+
+
+"""
+db = Db(10)
+db.visualize()
+"""
