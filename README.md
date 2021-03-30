@@ -38,8 +38,6 @@ python main.py
 
 which will run the crawler with 5 workers.
 
-TODO: Add instructions for database.
-
 ## Division of work
 | Developer | Tasks |
 | ------ | ------ |
