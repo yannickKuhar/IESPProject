@@ -20,7 +20,7 @@
 <img src="crawler/crawler.png" width=550>
 
 ## Installation and use
-We added a **requirements.txt** for easier installation. After cloning the repository go to the IESPProject folder and run the following command:
+We added a **requirements.txt** for easier installation. After cloning the repository go to the IESPProject/pa1 folder and run the following command:
 ```
 pip install -r requirements.txt
 ```
